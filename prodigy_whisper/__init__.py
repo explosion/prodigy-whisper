@@ -1,7 +1,11 @@
+import tempfile 
+from pathlib import Path 
 from copy import deepcopy
 from typing import List, Optional
 
+from pydub import AudioSegment
 from prodigy.components.preprocess import fetch_media as fetch_media_preprocessor
+from prodigy.components.preprocess import fetch_task_media
 from prodigy.components.stream import get_stream
 from prodigy.core import Arg, recipe
 from prodigy.protocols import ControllerComponentsDict
@@ -15,20 +19,25 @@ from whisper.model import Whisper
 def add_annotations(stream, model: Whisper, model_name: str, segment: bool=False):
     for ex in stream:
         ex['meta']['model_name'] = model_name
-        result = model.transcribe(ex['path'])
+        # If you don't pass fp16 you'll get an annoying warning 
+        result = model.transcribe(ex['path'], fp16=False)
         if segment:
-            example_segment = deepcopy(ex)
-            print(result['segments'])
+            log(f"RECIPE: {ex['meta']['path']} has {len(result['segments'])} segments.")
             for seg in result['segments']:
+                example_segment = deepcopy(ex)
                 example_segment['transcript'] = seg['text']
                 example_segment['orig_transcript'] = seg['text']
-                example_segment["audio_spans"] = [
-                    {
-                        "start": seg["start"],
-                        "end": seg["end"],
-                        "label": "segment"
-                    }
-                ]
+                example_segment['meta']['start'] = seg['start']
+                example_segment['meta']['end'] = seg['end']
+                example_segment['meta']['end'] = seg['end']
+                example_segment['meta']['segment_id'] = seg['id']
+                audio = AudioSegment.from_file(example_segment['meta']['path'])
+                with tempfile.TemporaryDirectory("+wb") as tmpdir:
+                    out_file = str(Path(tmpdir) / "out.mp3")
+                    audio[seg['start'] * 1000: seg['end'] * 1000].export(out_file)
+                    example_segment["audio"] = out_file
+                    example_segment = fetch_task_media(example_segment, input_key="audio")
+                    del example_segment['text']
                 yield set_hashes(example_segment, overwrite=True)
         else:
             ex['transcript'] = result['text']
@@ -71,7 +80,7 @@ def whisper_audio_transcribe(
     log("RECIPE: Starting recipe whisper.audio.transcribe", locals())
     stream = get_stream(source, loader=loader, rehash=True, dedup=True, is_binary=False)
     if fetch_media:
-        stream.apply(fetch_media_preprocessor, input_keys=["audio", "video"])
+        stream.apply(fetch_media_preprocessor, input_keys=["audio"])
 
     def add_transcript_input_metadata(stream: StreamType) -> StreamType:
         for task in stream:
@@ -89,8 +98,7 @@ def whisper_audio_transcribe(
 
     loaded_model = whisper.load_model(model)
     stream.apply(add_annotations, model=loaded_model, model_name=model, segment=segment)
-    blocks = [{"view_id": "audio_manual"}] if segment else [{"view_id": "audio"}]
-    blocks.append({"view_id": "text_input"})
+    blocks = [{"view_id": "audio"}, {"view_id": "text_input"}]
 
     return {
         "view_id": "blocks",
@@ -105,7 +113,9 @@ def whisper_audio_transcribe(
             "keymap": {"playpause": playpause_key},
             "auto_count_stream": True,
             "show_audio_timeline": segment,
-            "show_audio_minimap": not segment
+            "show_audio_minimap": not segment,
+            "audio_bar_width": 1,
+            "javascript": "console.log('this works yo');"
         },
     }
 
