@@ -24,13 +24,16 @@ def add_annotations(stream, model: Whisper, model_name: str, segment: bool=False
         if segment:
             log(f"RECIPE: {ex['meta']['path']} has {len(result['segments'])} segments.")
             for seg in result['segments']:
+                # Make sure we don't override original example
                 example_segment = deepcopy(ex)
                 example_segment['transcript'] = seg['text']
                 example_segment['orig_transcript'] = seg['text']
                 example_segment['meta']['start'] = seg['start']
                 example_segment['meta']['end'] = seg['end']
-                example_segment['meta']['end'] = seg['end']
                 example_segment['meta']['segment_id'] = seg['id']
+
+                # To keep things simple, write to a temporary file locally
+                # This ensures we can keep using same utility functions
                 audio = AudioSegment.from_file(example_segment['meta']['path'])
                 with tempfile.TemporaryDirectory("+wb") as tmpdir:
                     out_file = str(Path(tmpdir) / "out.mp3")
@@ -124,9 +127,7 @@ def remove_base64(examples: List[TaskType]) -> List[TaskType]:
     """Remove base64-encoded string if "path" is preserved in example."""
     for eg in examples:
         if "audio" in eg and eg["audio"].startswith("data:") and "path" in eg:
-            eg["audio"] = eg["path"]
-        if "video" in eg and eg["video"].startswith("data:") and "path" in eg:
-            eg["video"] = eg["path"]
+            del eg["audio"]
     return examples
 
 
