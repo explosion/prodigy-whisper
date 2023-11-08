@@ -123,7 +123,6 @@ def whisper_audio_transcribe(
             "show_audio_timeline": segment,
             "show_audio_minimap": not segment,
             "audio_bar_width": 1,
-            "javascript": "console.log('this works yo');"
         },
     }
 

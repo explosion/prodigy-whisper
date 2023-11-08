@@ -10,6 +10,8 @@ You can install this plugin via `pip`.
 pip install "prodigy-whisper @ git+https://github.com/explosion/prodigy-whisper"
 ```
 
+You'll also want to make sure that `ffmpeg` is installed before running these recipes. 
+
 To learn more about this plugin, you can check the [Prodigy docs](https://prodi.gy/docs/plugins/#whisper).
 
 ## Issues? 
