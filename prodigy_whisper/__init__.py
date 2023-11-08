@@ -110,7 +110,6 @@ def whisper_audio_transcribe(
         "before_db": remove_base64 if not keep_base64 else None,
         "exclude": exclude,
         "config": {
-            "labels": ["segment"] if segment else None,
             "blocks": blocks,
             "audio_autoplay": autoplay,
             "keymap": {"playpause": playpause_key},
