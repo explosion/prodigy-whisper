@@ -98,7 +98,13 @@ def whisper_audio_transcribe(
             yield task
 
     stream.apply(add_transcript_input_metadata)
-
+    
+    # Check if we need to tell the user that we're downloading a model
+    downloaded_models = [p.stem for p in Path("~/.cache/whisper/").expanduser().glob("*.pt")]
+    if model not in downloaded_models:
+        print("Downloading model.")
+    
+    # Load model to add transcriptions
     loaded_model = whisper.load_model(model)
     stream.apply(add_annotations, model=loaded_model, model_name=model, segment=segment)
     blocks = [{"view_id": "audio"}, {"view_id": "text_input"}]
