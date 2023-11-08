@@ -1,5 +1,3 @@
-import pytest 
-
 from prodigy_whisper import whisper_audio_transcribe
 
 
