@@ -78,7 +78,7 @@ def whisper_audio_transcribe(
     fetch_media: bool = False,
     exclude: List[str] = [],
 ) -> ControllerComponentsDict:
-    """Uploads annotated datasets from Prodigy to Huggingface."""
+    """Transcribe audio using Whisper."""
     # Available models can be found here: https://github.com/openai/whisper
     log("RECIPE: Starting recipe whisper.audio.transcribe", locals())
     stream = get_stream(source, loader=loader, rehash=True, dedup=True, is_binary=False)
